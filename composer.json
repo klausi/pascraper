@@ -1,0 +1,13 @@
+{
+    "name": "drupal/projectapp_scraper",
+    "type": "application",
+    "description": "Managing robot for drupal.org project applications.",
+    "keywords": ["scraper"],
+    "license": "GPLv2+",
+    "require": {
+        "fabpot/goutte": "*"
+    },
+    "autoload": {
+        "psr-0": { "lib": "." }
+    }
+}
