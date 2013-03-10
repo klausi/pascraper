@@ -10,6 +10,7 @@ const PROJECTAPP_SCRAPER_NEEDS_WORK = 13;
 const PROJECTAPP_SCRAPER_NEEDS_REVIEW = 8;
 
 // Perform a user login.
+global $client;
 $client = new Client();
 $crawler = $client->request('GET', 'http://drupal.org/user');
 $form = $crawler->selectButton('Log in')->form();
@@ -87,6 +88,35 @@ foreach ($links as $link) {
 
   // Post a hint to the review bonus program.
   $issue_text = $issue_thread->text();
-  //if (stripos($issue_text, 'review bonus'))
-  //print_r($issue_text);
+  if (stripos($issue_text, 'review bonus') === FALSE) {
+    $comment_form = $issue_page->selectButton('Save')->form();
+    $comment = 'We are currently quite busy with all the project applications and I can only review projects with a <a href="http://drupal.org/node/1410826">review bonus</a>. Please help me reviewing and I\'ll take a look at your project right away :-)';
+    $client->submit($comment_form, array('comment' => $comment));
+    continue;
+  }
+}
+
+/**
+ * Helper function to either output the issue comment on a dry-run or post a new
+ * comment to the issue.
+ */
+function projectapp_scraper_post_comment($issue_page, $comment, $status = NULL) {
+  global $argv;
+  global $client;
+  if (isset($argv[1]) && $argv[1] == 'dry-run') {
+    $output = array(
+      'issue' => $client->getRequest()->getUri(),
+      'comment' => $comment,
+      'status' => $status,
+    );
+    print_r($output);
+  }
+  else {
+    $comment_form = $issue_page->selectButton('Save')->form();
+    $form_values = array('comment' => $comment);
+    if ($status) {
+      $form_values['sid'] = $status;
+    }
+    $client->submit($comment_form, $form_values);
+  }
 }
