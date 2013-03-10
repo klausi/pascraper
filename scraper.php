@@ -55,12 +55,8 @@ foreach ($links as $link) {
     }
     else {
       // Set the issue to "needs work" as the Git URL is missing.
-      $comment_form = $issue_page->selectButton('Save')->form();
       $comment = 'Git repository URL is missing in the issue summary.';
-      $client->submit($comment_form, array(
-        'sid' => PROJECTAPP_SCRAPER_NEEDS_WORK,
-        'comment' => $comment,
-      ));
+      projectapp_scraper_post_comment($issue_page, $comment, PROJECTAPP_SCRAPER_NEEDS_WORK);
       continue;
     }
   }
@@ -76,12 +72,8 @@ foreach ($links as $link) {
     // If there are more than 10 lines output then we assume that some errors
     // should be fixed.
     if (count($pareview_output) > 10) {
-      $comment_form = $issue_page->selectButton('Save')->form();
       $comment = 'There are some errors reported by automated review tools, did you already check them? See http://ventral.org/pareview/' . str_replace(array('/', '.', ':'), '', $git_url);
-      $client->submit($comment_form, array(
-        'sid' => PROJECTAPP_SCRAPER_NEEDS_WORK,
-        'comment' => $comment,
-      ));
+      projectapp_scraper_post_comment($issue_page, $comment, PROJECTAPP_SCRAPER_NEEDS_WORK);
       continue;
     }
   }
@@ -89,9 +81,8 @@ foreach ($links as $link) {
   // Post a hint to the review bonus program.
   $issue_text = $issue_thread->text();
   if (stripos($issue_text, 'review bonus') === FALSE) {
-    $comment_form = $issue_page->selectButton('Save')->form();
     $comment = 'We are currently quite busy with all the project applications and I can only review projects with a <a href="http://drupal.org/node/1410826">review bonus</a>. Please help me reviewing and I\'ll take a look at your project right away :-)';
-    $client->submit($comment_form, array('comment' => $comment));
+    projectapp_scraper_post_comment($issue_page, $comment);
     continue;
   }
 }
