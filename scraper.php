@@ -24,7 +24,7 @@ if ($login_errors->count() > 0) {
 }
 
 // Get all "needs review" issues.
-$crawler = $client->request('GET', 'http://drupal.org/project/issues/1339220?status=8');
+$crawler = $client->request('GET', 'http://drupal.org/project/issues/projectapplications?status=8');
 $issues = $crawler->filterXPath('//tbody/tr/td[1]/a');
 
 if ($issues->count() == 0) {
@@ -38,13 +38,24 @@ $links = $issues->links();
 foreach ($links as $link) {
   $issue_page = $client->click($link);
   $issue_summary = $issue_page->filter('.node-content');
+  $text = $issue_summary->extract(array('_text', 'href'));
+  print_r($text);
   $text = $issue_summary->text();
 
   // Search for the git repository link.
   $matches = array();
-  preg_match('/http:\/\/git\.drupal\.org\/sandbox\/.+\.git/', $text, $matches);
+  // There are a couple of possible patterns:
+  // http://git.drupal.org/sandbox/<user>/<nid>.git
+  // <user>@git.drupal.org:sandbox/<user>/<nid>.git
+  // http://drupalcode.org/sandbox/<user>/<nid>.git
+  // git.drupal.org:sandbox/<user>/<nid>.git
+  // http://drupal.org/sandbox/<user>/<nid>
+  preg_match('/http:\/\/git\.drupal\.org\/sandbox\/.+\.git|[^\s]+@git\.drupal\.org:sandbox\/.+\.git|http:\/\/drupalcode\.org\/sandbox\/.+.git|git\.drupal\.org:sandbox\/.+\.git|http:\/\/drupal\.org\/sandbox\/[^\s]+/', $text, $matches);
   if (!empty($matches)) {
-    $git_url = $matches[0];
+    $url = $matches[0];
+    preg_match('/sandbox\/[^\.]/', $url, $matches);
+    $git_url = 'http://git.drupal.org/' . $matches[0] . '.git';
+    print_r($git_url);
   }
   else {
     // Try to find a user specific git URL.
@@ -55,7 +66,7 @@ foreach ($links as $link) {
     }
     else {
       // Set the issue to "needs work" as the Git URL is missing.
-      $comment = 'Git repository URL is missing in the issue summary.';
+      $comment = 'Git repository URL is missing in the issue summary. Please copy the anonymous git clone URL from your project page. Pattern: http://git.drupal.org/sandbox/<your-git-user-id>/<your-sandbox-id>.git';
       projectapp_scraper_post_comment($issue_page, $comment, PROJECTAPP_SCRAPER_NEEDS_WORK);
       continue;
     }
@@ -95,6 +106,7 @@ function projectapp_scraper_post_comment($issue_page, $comment, $status = NULL) 
   global $argv;
   global $client;
   if (isset($argv[1]) && $argv[1] == 'dry-run') {
+    // Dry run, so just print out the suggested comment.
     $output = array(
       'issue' => $client->getRequest()->getUri(),
       'comment' => $comment,
@@ -103,6 +115,7 @@ function projectapp_scraper_post_comment($issue_page, $comment, $status = NULL) 
     print_r($output);
   }
   else {
+    // Production run: post the comment to the drupal.org issue.
     $comment_form = $issue_page->selectButton('Save')->form();
     $form_values = array('comment' => $comment);
     if ($status) {
