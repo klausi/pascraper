@@ -6,8 +6,5 @@
     "license": "GPLv2+",
     "require": {
         "fabpot/goutte": "*"
-    },
-    "autoload": {
-        "psr-0": { "lib": "." }
     }
 }
