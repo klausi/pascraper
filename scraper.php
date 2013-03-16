@@ -9,6 +9,9 @@ use Goutte\Client;
 const PROJECTAPP_SCRAPER_NEEDS_WORK = 13;
 const PROJECTAPP_SCRAPER_NEEDS_REVIEW = 8;
 const PROJECTAPP_SCRAPER_DUPLICATE = 3;
+const PROJECTAPP_SCRAPER_POSTPONED = 4;
+const PROJECTAPP_SCRAPER_POSTPONED_INFO = 16;
+const PROJECTAPP_SCRAPER_WONTFIX = 5;
 
 // Perform a user login.
 global $client;
@@ -150,6 +153,31 @@ COMMENT;
   }
 }
 
+// Close "needs work" applications that got no update in more than 10 weeks.
+$search_results = $client->submit($search_form, array('status' => array(PROJECTAPP_SCRAPER_NEEDS_WORK, PROJECTAPP_SCRAPER_POSTPONED, PROJECTAPP_SCRAPER_POSTPONED_INFO)));
+// Sort by last updated date.
+$sorted = $client->click($search_results->selectLink('Last updated')->link());
+$old_issues = $sorted->filterXPath('//tbody/tr/td[1]/a')->links();
+// Extract the updated intervals from the issue table.
+$intervals = $sorted->filterXPath('//tbody/tr/td[7]');
+
+$comment = 'Closing due to lack of activity. Feel free to reopen if you are still working on this application.';
+
+foreach ($intervals as $count => $interval) {
+  $updated = strtotime(trim($interval->nodeValue));
+  $diff = $updated - time();
+  // 10 weeks == 6048000 seconds.
+  if ($diff > 6048000) {
+    $issue_page = $client->click($old_issues[$count]);
+    projectapp_scraper_post_comment($issue_page, $comment, PROJECTAPP_SCRAPER_WONTFIX);
+  }
+  else {
+    // We reached the threshold of 10 weeks, all further issues are younger. So
+    // we can stop here.
+    break;
+  }
+}
+
 /**
  * Helper function to either output the issue comment on a dry-run or post a new
  * comment to the issue.
@@ -157,6 +185,10 @@ COMMENT;
 function projectapp_scraper_post_comment($issue_page, $post, $status = NULL) {
   global $argv;
   global $client;
+  if (!is_array($post)) {
+    $post = array($post);
+  }
+
   $post[] = "<i>I'm a robot and this is an automated message from <a href=\"http://drupal.org/sandbox/klausi/1938730\">Project Applications Scraper</a>.</i>";
 
   if (isset($argv[1]) && $argv[1] == 'dry-run') {
