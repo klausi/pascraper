@@ -33,6 +33,13 @@ if ($issues->count() == 0) {
   exit(2);
 }
 
+// Retrieve the advanced search form for checking multiple applications.
+// We cannot just fetch with the URL
+// '?submitted=' . urlencode($user_name) . '&status[]=Open' because the status
+// does not work. Instead we submit the issue search form.
+$issue_search = $client->request('GET', 'http://drupal.org/project/issues/search/projectapplications');
+$search_form = $issue_search->filter('#edit-submit-project-issue-search-project')->form();
+
 $links = $issues->links();
 
 // Go to each issue.
@@ -100,19 +107,8 @@ foreach ($links as $link) {
     }
   }
 
-  // Post a hint to the review bonus program.
-  $issue_text = $issue_thread->text();
-  if (stripos($issue_text, 'review bonus') === FALSE) {
-    $post[] = 'We are currently quite busy with all the project applications and I can only review projects with a <a href="http://drupal.org/node/1410826">review bonus</a>. Please help me reviewing and put yourself on the <a href="http://drupal.org/project/issues/search/projectapplications?status[]=8&status[]=14&issue_tags=PAReview%3A+review+bonus">PAReview: review bonus high priority list</a>. Then I\'ll take a look at your project right away :-)';
-  }
-
   // Search for multiple applications for this user.
   $user_name = $issue_page->filterXPath("///div[@class = 'node clear-block node-type-project_issue']/div[@class = 'submitted']/a")->text();
-  // We cannot just fetch with the URL
-  // '?submitted=' . urlencode($user_name) . '&status[]=Open' because the status
-  // does not work. Instead we submit the issue search form.
-  $issue_search = $client->request('GET', 'http://drupal.org/project/issues/search/projectapplications');
-  $search_form = $issue_search->filter('#edit-submit-project-issue-search-project')->form();
   $search_results = $client->submit($search_form, array('submitted' => $user_name, 'status' => 'Open'));
   $application_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
   if (count($application_issues) > 1) {
@@ -141,6 +137,12 @@ COMMENT;
       $duplicate_page = $client->click($application_issue);
       projectapp_scraper_post_comment($duplicate_page, $comment, PROJECTAPP_SCRAPER_DUPLICATE);
     }
+  }
+
+  // Post a hint to the review bonus program.
+  $issue_text = $issue_thread->text();
+  if (stripos($issue_text, 'review bonus') === FALSE) {
+    $post[] = 'We are currently quite busy with all the project applications and I can only review projects with a <a href="http://drupal.org/node/1410826">review bonus</a>. Please help me reviewing and put yourself on the <a href="http://drupal.org/project/issues/search/projectapplications?status[]=8&status[]=14&issue_tags=PAReview%3A+review+bonus">PAReview: review bonus high priority list</a>. Then I\'ll take a look at your project right away :-)';
   }
 
   if (!empty($post)) {
