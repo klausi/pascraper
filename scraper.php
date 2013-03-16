@@ -115,6 +115,7 @@ foreach ($links as $link) {
   $search_results = $client->submit($search_form, array('submitted' => $user_name, 'status' => 'Open'));
   $application_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
   if (count($application_issues) > 1) {
+    $comment = array();
     $comment[] = <<<COMMENT
 <dl>
 <dt>Multiple Applications</dt>
@@ -154,7 +155,7 @@ COMMENT;
 }
 
 // Close "needs work" applications that got no update in more than 10 weeks.
-$search_results = $client->submit($search_form, array('status' => array(PROJECTAPP_SCRAPER_NEEDS_WORK, PROJECTAPP_SCRAPER_POSTPONED, PROJECTAPP_SCRAPER_POSTPONED_INFO)));
+$search_results = $client->submit($search_form, array('submitted' => '', 'status' => array(PROJECTAPP_SCRAPER_NEEDS_WORK, PROJECTAPP_SCRAPER_POSTPONED, PROJECTAPP_SCRAPER_POSTPONED_INFO)));
 // Sort by last updated date.
 $sorted = $client->click($search_results->selectLink('Last updated')->link());
 $old_issues = $sorted->filterXPath('//tbody/tr/td[1]/a')->links();
@@ -190,11 +191,12 @@ function projectapp_scraper_post_comment($issue_page, $post, $status = NULL) {
   }
 
   $post[] = "<i>I'm a robot and this is an automated message from <a href=\"http://drupal.org/sandbox/klausi/1938730\">Project Applications Scraper</a>.</i>";
+  $comment_form = $issue_page->selectButton('Save')->form();
 
   if (isset($argv[1]) && $argv[1] == 'dry-run') {
     // Dry run, so just print out the suggested comment.
     $output = array(
-      'issue' => $client->getRequest()->getUri(),
+      'issue' => $comment_form->getUri(),
       'comment' => $post,
       'status' => $status,
     );
@@ -202,7 +204,6 @@ function projectapp_scraper_post_comment($issue_page, $post, $status = NULL) {
   }
   else {
     // Production run: post the comment to the drupal.org issue.
-    $comment_form = $issue_page->selectButton('Save')->form();
     $comment = implode("\n\n", $post);
     $form_values = array('comment' => $comment);
     if ($status) {
