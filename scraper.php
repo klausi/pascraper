@@ -157,7 +157,7 @@ COMMENT;
 function projectapp_scraper_post_comment($issue_page, $post, $status = NULL) {
   global $argv;
   global $client;
-  $post[] = "<i>I'm a robot and this is an automated message.</i>";
+  $post[] = "<i>I'm a robot and this is an automated message from <a href=\"http://drupal.org/sandbox/klausi/1938730\">Project Applications Scraper</a>.</i>";
 
   if (isset($argv[1]) && $argv[1] == 'dry-run') {
     // Dry run, so just print out the suggested comment.
