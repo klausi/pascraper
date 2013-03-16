@@ -8,6 +8,7 @@ use Goutte\Client;
 // "Needs work" issue status ID.
 const PROJECTAPP_SCRAPER_NEEDS_WORK = 13;
 const PROJECTAPP_SCRAPER_NEEDS_REVIEW = 8;
+const PROJECTAPP_SCRAPER_DUPLICATE = 3;
 
 // Perform a user login.
 global $client;
@@ -105,6 +106,43 @@ foreach ($links as $link) {
     $post[] = 'We are currently quite busy with all the project applications and I can only review projects with a <a href="http://drupal.org/node/1410826">review bonus</a>. Please help me reviewing and put yourself on the <a href="http://drupal.org/project/issues/search/projectapplications?status[]=8&status[]=14&issue_tags=PAReview%3A+review+bonus">PAReview: review bonus high priority list</a>. Then I\'ll take a look at your project right away :-)';
   }
 
+  // Search for multiple applications for this user.
+  $user_name = $issue_page->filterXPath("///div[@class = 'node clear-block node-type-project_issue']/div[@class = 'submitted']/a")->text();
+  // We cannot just fetch with the URL
+  // '?submitted=' . urlencode($user_name) . '&status[]=Open' because the status
+  // does not work. Instead we submit the issue search form.
+  $issue_search = $client->request('GET', 'http://drupal.org/project/issues/search/projectapplications');
+  $search_form = $issue_search->filter('#edit-submit-project-issue-search-project')->form();
+  $search_results = $client->submit($search_form, array('submitted' => $user_name, 'status' => 'Open'));
+  $application_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
+  if (count($application_issues) > 1) {
+    $comment[] = <<<COMMENT
+<dl>
+<dt>Multiple Applications</dt>
+<dd>It appears that there have been multiple project applications opened under your username:
+
+COMMENT;
+    foreach ($application_issues as $count => $application_issue) {
+      $comment[] = 'Project ' . ($count + 1) . ': ' . $application_issue->getUri();
+    }
+    $comment[] = <<<COMMENT
+As successful completion of the project application process results in the applicant being granted the 'Create Full Projects' permission, there is no need to take multiple applications through the process. Once the first application has been successfully approved, then the applicant can promote other projects without review. Because of this, posting multiple applications is not necessary, and results in additional workload for reviewers ... which in turn results in longer wait times for everyone in the queue.  With this in mind, your secondary applications have been marked as 'closed(duplicate)', with only one application left open (chosen at random).
+
+If you prefer that we proceed through this review process with a different application than the one which was left open, then feel free to close the 'open' application as a duplicate, and re-open one of the project applications which had been closed.</dd>
+</dl>
+COMMENT;
+    // Leave the last application open and just post the comment.
+    $open_application = array_pop($application_issues);
+    $open_application_page = $client->click($open_application);
+    projectapp_scraper_post_comment($open_application_page, $comment);
+
+    // Close all other applications.
+    foreach ($application_issues as $application_issue) {
+      $duplicate_page = $client->click($application_issue);
+      projectapp_scraper_post_comment($duplicate_page, $comment, PROJECTAPP_SCRAPER_DUPLICATE);
+    }
+  }
+
   if (!empty($post)) {
     projectapp_scraper_post_comment($issue_page, $post, $status);
   }
@@ -117,6 +155,8 @@ foreach ($links as $link) {
 function projectapp_scraper_post_comment($issue_page, $post, $status = NULL) {
   global $argv;
   global $client;
+  $post[] = "<i>I'm a robot and this is an automated message.</i>";
+
   if (isset($argv[1]) && $argv[1] == 'dry-run') {
     // Dry run, so just print out the suggested comment.
     $output = array(
