@@ -49,6 +49,8 @@ $links = $issues->links();
 foreach ($links as $link) {
   $issue_page = $client->click($link);
   $issue_summary = $issue_page->filter('.node-content');
+  // Get the issue summary + all commments.
+  $issue_thread = $issue_page->filter('#content');
   // Initialize empty comment list that shoudl be posted.
   $post = array();
   // Do not touch the issue's status per default.
@@ -77,8 +79,13 @@ foreach ($links as $link) {
     preg_match('/http:\/\/git\.drupal\.org\/sandbox\/.+\.git|[^\s]+@git\.drupal\.org:sandbox\/.+\.git|http:\/\/drupalcode\.org\/sandbox\/.+.git|git\.drupal\.org:sandbox\/.+\.git/', $text, $matches);
     if (empty($matches)) {
       // Set the issue to "needs work" as the link to the project page is missing.
-      $post[] = 'Link to the project page and git clone command are missing in the issue summary, please add them.';
-      $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
+      $comment = 'Link to the project page and git clone command are missing in the issue summary, please add them.';
+      // Only set the issue to "needs work" once, to avoid changing the status
+      // over and over again.
+      if (strpos($issue_thread->text(), $comment) === FALSE) {
+        $post[] = $comment;
+        $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
+      }
     }
     else {
       $url = $matches[0];
@@ -86,9 +93,6 @@ foreach ($links as $link) {
       $git_url = 'http://git.drupal.org/' . $matches[0] . '.git';
     }
   }
-
-  // Get the issue summary + all commments.
-  $issue_thread = $issue_page->filter('#content');
 
   if ($git_url) {
     // Check if someone already posted a link to ventral.org automated reviews.
