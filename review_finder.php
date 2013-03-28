@@ -12,10 +12,13 @@ require 'user_password.php';
 use Goutte\Client;
 
 $client = new Client();
-// Get all "needs review" issues.
-$crawler = $client->request('GET', 'http://drupal.org/project/issues/projectapplications?status=8');
+// Get all "needs review" and RTBC issues.
+$crawler = $client->request('GET', 'http://drupal.org/project/issues/search/projectapplications');
+$search_form = $crawler->filter('#edit-submit-project-issue-search-project')->form();
+$search_results = $client->submit($search_form, array('status' => array(8, 14)));
+
 // Oldest first.
-$link = $crawler->selectLink('Last updated')->link();
+$link = $search_results->selectLink('Last updated')->link();
 $search_page = $client->click($link);
 
 $issues = $search_page->filterXPath('//tbody/tr/td[1]/a');
