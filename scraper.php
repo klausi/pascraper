@@ -63,6 +63,7 @@ foreach ($links as $link) {
   foreach ($summary_links as $reference) {
     if (preg_match('/http(s)?:\/\/drupal\.org\/sandbox\//', $reference->value)) {
       $git_url = str_replace('https://', 'http://', $reference->value);
+      $git_url = trim($git_url);
       $git_url = str_replace('http://', 'http://git.', $git_url) . '.git';
       break;
     }
