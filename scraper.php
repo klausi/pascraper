@@ -44,9 +44,15 @@ $issue_search = $client->request('GET', 'http://drupal.org/project/issues/search
 $search_form = $issue_search->filter('#edit-submit-project-issue-search-project')->form();
 
 $links = $issues->links();
+$closed_issues = array();
 
 // Go to each issue.
 foreach ($links as $link) {
+  // Do not touch issues that we already closed.
+  if (in_array($link->getUri(), $closed_issues)) {
+    continue;
+  }
+
   $issue_page = $client->click($link);
   $issue_summary = $issue_page->filter('.node-content');
   // Get the issue summary + all commments.
@@ -136,15 +142,19 @@ As successful completion of the project application process results in the appli
 If you prefer that we proceed through this review process with a different application than the one which was left open, then feel free to close the 'open' application as a duplicate, and re-open one of the project applications which had been closed.</dd>
 </dl>
 COMMENT;
-    // Leave the last application open and just post the comment.
-    $open_application = array_pop($application_issues);
-    $open_application_page = $client->click($open_application);
-    projectapp_scraper_post_comment($open_application_page, $comment);
+    // Leave the current application open and just post the comment.
+    projectapp_scraper_post_comment($issue_page, $comment);
 
     // Close all other applications.
     foreach ($application_issues as $application_issue) {
+      if ($application_issue->getUri() == $link->getUri()) {
+        // Skip the current application.
+        continue;
+      }
       $duplicate_page = $client->click($application_issue);
       projectapp_scraper_post_comment($duplicate_page, $comment, PROJECTAPP_SCRAPER_DUPLICATE);
+      // Rember that we closed this issue to not post to it in this run again.
+      $closed_issues[] = $application_issue->getUri();
     }
   }
 
