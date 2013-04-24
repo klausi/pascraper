@@ -28,7 +28,7 @@ if ($login_errors->count() > 0) {
 }
 
 // Get all "needs review" issues.
-$crawler = $client->request('GET', 'http://drupal.org/project/issues/projectapplications?status=8');
+$crawler = $client->request('GET', 'http://drupal.org/project/issues/1339220?status=8');
 $issues = $crawler->filterXPath('//tbody/tr/td[1]/a');
 
 if ($issues->count() == 0) {
@@ -40,7 +40,7 @@ if ($issues->count() == 0) {
 // We cannot just fetch with the URL
 // '?submitted=' . urlencode($user_name) . '&status[]=Open' because the status
 // does not work. Instead we submit the issue search form.
-$issue_search = $client->request('GET', 'http://drupal.org/project/issues/search/projectapplications');
+$issue_search = $client->request('GET', 'http://drupal.org/project/issues/search/1339220');
 $search_form = $issue_search->filter('#edit-submit-project-issue-search-project')->form();
 
 $links = $issues->links();
@@ -83,7 +83,7 @@ foreach ($links as $link) {
     // <user>@git.drupal.org:sandbox/<user>/<nid>.git
     // http://drupalcode.org/sandbox/<user>/<nid>.git
     // git.drupal.org:sandbox/<user>/<nid>.git
-    preg_match('/http:\/\/git\.drupal\.org\/sandbox\/.+\.git|[^\s]+@git\.drupal\.org:sandbox\/.+\.git|http:\/\/drupalcode\.org\/sandbox\/.+.git|git\.drupal\.org:sandbox\/.+\.git/', $text, $matches);
+    preg_match('/http:\/\/git\.drupal\.org\/sandbox\/[^\s]+\.git|[^\s]+@git\.drupal\.org:sandbox\/[^\s]+\.git|http:\/\/drupalcode\.org\/sandbox\/[^\s]+\.git|git\.drupal\.org:sandbox\/[^\s]+\.git/', $text, $matches);
     if (empty($matches)) {
       // Set the issue to "needs work" as the link to the project page is missing.
       $comment = 'Link to the project page and git clone command are missing in the issue summary, please add them.';
@@ -97,7 +97,7 @@ foreach ($links as $link) {
     else {
       $url = $matches[0];
       preg_match('/sandbox\/.*\.git/', $url, $matches);
-      $git_url = 'http://git.drupal.org/' . $matches[0] . '.git';
+      $git_url = 'http://git.drupal.org/' . $matches[0];
     }
   }
 
