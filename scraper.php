@@ -28,7 +28,7 @@ if ($login_errors->count() > 0) {
 }
 
 // Get all "needs review" issues.
-$crawler = $client->request('GET', 'http://drupal.org/project/issues/1339220?status=8');
+$crawler = $client->request('GET', 'http://drupal.org/project/issues/projectapplications?status=8');
 $issues = $crawler->filterXPath('//tbody/tr/td[1]/a');
 
 if ($issues->count() == 0) {
@@ -40,7 +40,7 @@ if ($issues->count() == 0) {
 // We cannot just fetch with the URL
 // '?submitted=' . urlencode($user_name) . '&status[]=Open' because the status
 // does not work. Instead we submit the issue search form.
-$issue_search = $client->request('GET', 'http://drupal.org/project/issues/search/1339220');
+$issue_search = $client->request('GET', 'http://drupal.org/project/issues/search/projectapplications');
 $search_form = $issue_search->filter('#edit-submit-project-issue-search-project')->form();
 
 $links = $issues->links();
