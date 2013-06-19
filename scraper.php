@@ -16,7 +16,7 @@ const PROJECTAPP_SCRAPER_WONTFIX = 5;
 // Perform a user login.
 global $client;
 $client = new Client();
-$crawler = $client->request('GET', 'http://drupal.org/user');
+$crawler = $client->request('GET', 'https://drupal.org/user');
 $form = $crawler->selectButton('Log in')->form();
 // $user and $password must be set in user_password.php.
 $crawler = $client->submit($form, array('name' => $user, 'pass' => $password));
@@ -28,7 +28,7 @@ if ($login_errors->count() > 0) {
 }
 
 // Get all "needs review" issues.
-$crawler = $client->request('GET', 'http://drupal.org/project/issues/projectapplications?status=8');
+$crawler = $client->request('GET', 'https://drupal.org/project/issues/projectapplications?status=8');
 $issues = $crawler->filterXPath('//tbody/tr/td[1]/a');
 
 if ($issues->count() == 0) {
@@ -40,7 +40,7 @@ if ($issues->count() == 0) {
 // We cannot just fetch with the URL
 // '?submitted=' . urlencode($user_name) . '&status[]=Open' because the status
 // does not work. Instead we submit the issue search form.
-$issue_search = $client->request('GET', 'http://drupal.org/project/issues/search/projectapplications');
+$issue_search = $client->request('GET', 'https://drupal.org/project/issues/search/projectapplications');
 $search_form = $issue_search->filter('#edit-submit-project-issue-search-project')->form();
 
 $links = $issues->links();
@@ -122,7 +122,16 @@ foreach ($links as $link) {
   }
 
   // Search for multiple applications for this user.
-  $user_name = $issue_page->filterXPath("///div[@class = 'node clear-block node-type-project_issue']/div[@class = 'submitted']/a")->text();
+  $node_author = $issue_page->filterXPath("///div[@class = 'node clear-block node-type-project_issue']/div[@class = 'submitted']/a");
+  $user_name = $node_author->text();
+
+  // The username might have been shortened, so we go to the user account page
+  // and get it from there.
+  if (mb_substr($user_name, -3) == '...') {
+    $user_page_link = $node_author->link();
+    $user_page = $client->click($user_page_link);
+    $user_name = $user_page->filter('#page-title')->text();
+  }
   $search_results = $client->submit($search_form, array('submitted' => $user_name, 'status' => 'Open'));
   $application_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
   if (count($application_issues) > 1) {
