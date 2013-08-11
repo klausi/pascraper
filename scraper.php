@@ -102,9 +102,10 @@ foreach ($links as $link) {
   }
 
   if ($git_url) {
-    // Check if someone already posted a link to ventral.org automated reviews.
-    $issue_links = $issue_thread->filterXPath("//@href[starts-with(., 'http://ventral.org/pareview')]");
-    if ($issue_links->count() == 0) {
+    // Check if someone already posted a link to pareview.sh automated reviews.
+    $issue_links = $issue_thread->filterXPath("//@href[starts-with(., 'http://pareview.sh/pareview')]");
+    $issue_links_ventral = $issue_thread->filterXPath("//@href[starts-with(., 'http://ventral.org/pareview')]");
+    if ($issue_links->count() == 0 && $issue_links_ventral->count() == 0) {
       // Invoke pareview.sh now to check automated review errors.
       $pareview_output = array();
       $return_var = 0;
@@ -115,7 +116,7 @@ foreach ($links as $link) {
       // If there are more than 30 lines output then we assume that some errors
       // should be fixed.
       elseif (count($pareview_output) > 30) {
-        $post[] = 'There are some errors reported by automated review tools, did you already check them? See http://ventral.org/pareview/' . str_replace(array('/', '.', ':'), '', $git_url);
+        $post[] = 'There are some errors reported by automated review tools, did you already check them? See http://pareview.sh/pareview/' . str_replace(array('/', '.', ':'), '', $git_url);
         $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
       }
     }
