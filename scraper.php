@@ -188,7 +188,7 @@ $old_issues = $sorted->filterXPath('//tbody/tr/td[1]/a')->links();
 // Extract the updated intervals from the issue table.
 $intervals = $sorted->filterXPath('//tbody/tr/td[7]');
 
-$comment = 'Closing due to lack of activity. Feel free to reopen if you are still working on this application.';
+$comment = 'Closing due to lack of activity. Feel free to reopen if you are still working on this application (see also the <a href="https://drupal.org/node/532400">project application workflow</a>).';
 
 foreach ($intervals as $count => $interval) {
   $updated = strtotime(trim($interval->nodeValue));
