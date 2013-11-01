@@ -36,13 +36,6 @@ if ($issues->count() == 0) {
   exit(2);
 }
 
-// Retrieve the advanced search form for checking multiple applications.
-// We cannot just fetch with the URL
-// '?submitted=' . urlencode($user_name) . '&status[]=Open' because the status
-// does not work. Instead we submit the issue search form.
-$issue_search = $client->request('GET', 'https://drupal.org/project/issues/search/projectapplications');
-$search_form = $issue_search->filter('#edit-submit-project-issue-search-project')->form();
-
 $links = $issues->links();
 $closed_issues = array();
 
@@ -54,51 +47,37 @@ foreach ($links as $link) {
   }
 
   $issue_page = $client->click($link);
-  $issue_summary = $issue_page->filter('.node-content');
+  $issue_summary = $issue_page->filter('.field-name-body');
   // Get the issue summary + all commments.
-  $issue_thread = $issue_page->filter('#content');
+  $issue_thread = $issue_page->filter('#block-system-main');
   // Initialize empty comment list that shoudl be posted.
   $post = array();
   // Do not touch the issue's status per default.
   $status = NULL;
 
-  // Extract all links out of the issue summary to determine the Git clone URL
-  // from the project page link.
-  $summary_links = $issue_summary->filterXPath('//@href');
-  $git_url = NULL;
-  foreach ($summary_links as $reference) {
-    if (preg_match('/http(s)?:\/\/drupal\.org\/sandbox\//', $reference->value)) {
-      $git_url = str_replace('https://', 'http://', $reference->value);
-      $git_url = trim($git_url);
-      $git_url = str_replace('http://', 'http://git.', $git_url) . '.git';
-      break;
+  // Search for git repository links.
+  $text = $issue_summary->text();
+  $matches = array();
+  // There are a couple of possible patterns:
+  // http://git.drupal.org/sandbox/<user>/<nid>.git
+  // <user>@git.drupal.org:sandbox/<user>/<nid>.git
+  // http://drupalcode.org/sandbox/<user>/<nid>.git
+  // git.drupal.org:sandbox/<user>/<nid>.git
+  preg_match('/http:\/\/git\.drupal\.org\/sandbox\/[^\s]+\.git|[^\s]+@git\.drupal\.org:sandbox\/[^\s]+\.git|http:\/\/drupalcode\.org\/sandbox\/[^\s]+\.git|git\.drupal\.org:sandbox\/[^\s]+\.git/', $text, $matches);
+  if (empty($matches)) {
+    // Set the issue to "needs work" as the link to the project page is missing.
+    $comment = 'Link to the project page and git clone command are missing in the issue summary, please add them.';
+    // Only set the issue to "needs work" once, to avoid changing the status
+    // over and over again.
+    if (strpos($issue_thread->text(), $comment) === FALSE) {
+      $post[] = $comment;
+      $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
     }
   }
-  if (!$git_url) {
-    // Search for other git repository links.
-    $text = $issue_summary->text();
-    $matches = array();
-    // There are a couple of possible patterns:
-    // http://git.drupal.org/sandbox/<user>/<nid>.git
-    // <user>@git.drupal.org:sandbox/<user>/<nid>.git
-    // http://drupalcode.org/sandbox/<user>/<nid>.git
-    // git.drupal.org:sandbox/<user>/<nid>.git
-    preg_match('/http:\/\/git\.drupal\.org\/sandbox\/[^\s]+\.git|[^\s]+@git\.drupal\.org:sandbox\/[^\s]+\.git|http:\/\/drupalcode\.org\/sandbox\/[^\s]+\.git|git\.drupal\.org:sandbox\/[^\s]+\.git/', $text, $matches);
-    if (empty($matches)) {
-      // Set the issue to "needs work" as the link to the project page is missing.
-      $comment = 'Link to the project page and git clone command are missing in the issue summary, please add them.';
-      // Only set the issue to "needs work" once, to avoid changing the status
-      // over and over again.
-      if (strpos($issue_thread->text(), $comment) === FALSE) {
-        $post[] = $comment;
-        $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
-      }
-    }
-    else {
-      $url = $matches[0];
-      preg_match('/sandbox\/.*\.git/', $url, $matches);
-      $git_url = 'http://git.drupal.org/' . $matches[0];
-    }
+  else {
+    $url = $matches[0];
+    preg_match('/sandbox\/.*\.git/', $url, $matches);
+    $git_url = 'http://git.drupal.org/' . $matches[0];
   }
 
   if ($git_url) {
@@ -123,7 +102,7 @@ foreach ($links as $link) {
   }
 
   // Search for multiple applications for this user.
-  $node_author = $issue_page->filterXPath("///div[@class = 'node clear-block node-type-project_issue']/div[@class = 'submitted']/a");
+  $node_author = $issue_page->filterXPath("///div[@class = 'node node-project-issue clearfix']/div[@class = 'submitted']/a");
   $user_name = $node_author->text();
 
   // The username might have been shortened, so we go to the user account page
@@ -133,7 +112,7 @@ foreach ($links as $link) {
     $user_page = $client->click($user_page_link);
     $user_name = $user_page->filter('#page-title')->text();
   }
-  $search_results = $client->submit($search_form, array('submitted' => $user_name, 'status' => 'Open'));
+  $search_results = $client->request('GET', 'https://drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&sid[]=Open');
   $application_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
   if (count($application_issues) > 1) {
     $comment = array();
@@ -181,12 +160,10 @@ COMMENT;
 }
 
 // Close "needs work" applications that got no update in more than 10 weeks.
-$search_results = $client->submit($search_form, array('submitted' => '', 'status' => array(PROJECTAPP_SCRAPER_NEEDS_WORK, PROJECTAPP_SCRAPER_POSTPONED, PROJECTAPP_SCRAPER_POSTPONED_INFO)));
-// Sort by last updated date.
-$sorted = $client->click($search_results->selectLink('Last updated')->link());
-$old_issues = $sorted->filterXPath('//tbody/tr/td[1]/a')->links();
+$search_results = $client->request('GET', 'https://drupal.org/project/issues/search/projectapplications?sid[0]=13&sid[1]=4&sid[2]=16&order=changed&sort=asc');
+$old_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
 // Extract the updated intervals from the issue table.
-$intervals = $sorted->filterXPath('//tbody/tr/td[7]');
+$intervals = $search_results->filterXPath('//tbody/tr/td[8]');
 
 $comment = 'Closing due to lack of activity. Feel free to reopen if you are still working on this application (see also the <a href="https://drupal.org/node/532400">project application workflow</a>).';
 
