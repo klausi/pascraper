@@ -112,7 +112,7 @@ foreach ($links as $link) {
     $user_page = $client->click($user_page_link);
     $user_name = $user_page->filter('#page-title')->text();
   }
-  $search_results = $client->request('GET', 'https://drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&sid[]=Open');
+  $search_results = $client->request('GET', 'https://drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&sid[0]=Open');
   $application_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
   if (count($application_issues) > 1) {
     $comment = array();
@@ -132,7 +132,7 @@ If you prefer that we proceed through this review process with a different appli
 </dl>
 COMMENT;
     // Leave the current application open and just post the comment.
-    projectapp_scraper_post_comment($issue_page, $comment);
+    projectapp_scraper_post_comment($link->getUri(), $comment);
 
     // Close all other applications.
     foreach ($application_issues as $application_issue) {
@@ -141,7 +141,7 @@ COMMENT;
         continue;
       }
       $duplicate_page = $client->click($application_issue);
-      projectapp_scraper_post_comment($duplicate_page, $comment, PROJECTAPP_SCRAPER_DUPLICATE);
+      projectapp_scraper_post_comment($client->getRequest()->getUri(), $comment, PROJECTAPP_SCRAPER_DUPLICATE);
       // Rember that we closed this issue to not post to it in this run again.
       $closed_issues[] = $application_issue->getUri();
     }
@@ -155,7 +155,7 @@ COMMENT;
   }
 
   if (!empty($post)) {
-    projectapp_scraper_post_comment($issue_page, $post, $status);
+    projectapp_scraper_post_comment($link->getUri(), $post, $status);
   }
 }
 
@@ -173,7 +173,7 @@ foreach ($intervals as $count => $interval) {
   // 10 weeks == 6048000 seconds.
   if ($diff > 6048000) {
     $issue_page = $client->click($old_issues[$count]);
-    projectapp_scraper_post_comment($issue_page, $comment, PROJECTAPP_SCRAPER_WONTFIX);
+    projectapp_scraper_post_comment($client->getRequest()->getUri(), $comment, PROJECTAPP_SCRAPER_WONTFIX);
   }
   else {
     // We reached the threshold of 10 weeks, all further issues are younger. So
@@ -186,7 +186,7 @@ foreach ($intervals as $count => $interval) {
  * Helper function to either output the issue comment on a dry-run or post a new
  * comment to the issue.
  */
-function projectapp_scraper_post_comment($issue_page, $post, $status = NULL) {
+function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
   global $argv;
   global $client;
   if (!is_array($post)) {
@@ -194,7 +194,16 @@ function projectapp_scraper_post_comment($issue_page, $post, $status = NULL) {
   }
 
   $post[] = "<i>I'm a robot and this is an automated message from <a href=\"http://drupal.org/sandbox/klausi/1938730\">Project Applications Scraper</a>.</i>";
-  $comment_form = $issue_page->selectButton('Save')->form();
+
+  if ($status) {
+    // If we need to set the status we edit the issue page itself.
+    $edit_page = $client->request('GET', $issue_uri . '/edit');
+  }
+  else {
+    // Otherwise we just add a comment with the usual comment form.
+    $edit_page = $client->request('GET', $issue_uri);
+  }
+  $comment_form = $edit_page->selectButton('Save')->form();
 
   if (isset($argv[1]) && $argv[1] == 'dry-run') {
     // Dry run, so just print out the suggested comment.
@@ -208,9 +217,16 @@ function projectapp_scraper_post_comment($issue_page, $post, $status = NULL) {
   else {
     // Production run: post the comment to the drupal.org issue.
     $comment = implode("\n\n", $post);
-    $form_values = array('comment' => $comment);
     if ($status) {
-      $form_values['sid'] = $status;
+      $form_values['nodechanges_comment_body[value]'] = $comment;
+      // We need to HTML entity decode the issue summary here, otherwise we
+      // would post back a double-encoded version, which would result in issue
+      // summary changes that we don't want to touch.
+      $form_values['body[und][0][value]'] = html_entity_decode($comment_form->get('body[und][0][value]')->getValue(), ENT_QUOTES, 'UTF-8');
+      $form_values['field_issue_status[und]'] = $status;
+    }
+    else {
+      $form_values['comment_body[und][0][value]'] = $comment;
     }
     $client->submit($comment_form, $form_values);
   }
