@@ -163,7 +163,7 @@ COMMENT;
   // Post a hint to the review bonus program.
   $issue_text = $issue_thread->text();
   if (stripos($issue_text, 'review bonus') === FALSE) {
-    $post[] = 'We are currently quite busy with all the project applications and we prefer projects with a <a href="http://drupal.org/node/1975228">review bonus</a>. Please help reviewing and put yourself on the <a href="http://drupal.org/project/issues/search/projectapplications?status[]=8&status[]=14&issue_tags=PAReview%3A+review+bonus">high priority list</a>, then we will take a look at your project right away :-)';
+    $post[] = 'We are currently quite busy with all the project applications and we prefer projects with a <a href="http://drupal.org/node/1975228">review bonus</a>. Please help reviewing and put yourself on the <a href="https://drupal.org/project/issues/search/projectapplications?sid[]=8&sid[]=14&issue_tags=PAReview%3A+review+bonus">high priority list</a>, then we will take a look at your project right away :-)';
     $post[] = 'Also, you should get your friends, colleagues or other community members involved to review this application. Let them go through the <a href="http://drupal.org/node/1587704">review checklist</a> and post a comment that sets this issue to "needs work" (they found some problems with the project) or "reviewed & tested by the community" (they found no major flaws).';
   }
 
