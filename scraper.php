@@ -13,19 +13,7 @@ const PROJECTAPP_SCRAPER_POSTPONED = 4;
 const PROJECTAPP_SCRAPER_POSTPONED_INFO = 16;
 const PROJECTAPP_SCRAPER_WONTFIX = 5;
 
-// Perform a user login.
-global $client;
 $client = new Client();
-$crawler = $client->request('GET', 'https://drupal.org/user');
-$form = $crawler->selectButton('Log in')->form();
-// $user and $password must be set in user_password.php.
-$crawler = $client->submit($form, array('name' => $user, 'pass' => $password));
-
-$login_errors = $crawler->filter('.messages-error');
-if ($login_errors->count() > 0) {
-  print "Login failed.\n";
-  exit(1);
-}
 
 // Get all "needs review" issues.
 $crawler = $client->request('GET', 'https://drupal.org/project/issues/projectapplications?status=8');
@@ -201,27 +189,16 @@ foreach ($intervals as $count => $interval) {
  */
 function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
   global $argv;
-  global $client;
   if (!is_array($post)) {
     $post = array($post);
   }
 
   $post[] = "<i>I'm a robot and this is an automated message from <a href=\"http://drupal.org/sandbox/klausi/1938730\">Project Applications Scraper</a>.</i>";
 
-  if ($status) {
-    // If we need to set the status we edit the issue page itself.
-    $edit_page = $client->request('GET', $issue_uri . '/edit');
-  }
-  else {
-    // Otherwise we just add a comment with the usual comment form.
-    $edit_page = $client->request('GET', $issue_uri);
-  }
-  $comment_form = $edit_page->selectButton('Save')->form();
-
   if (isset($argv[1]) && $argv[1] == 'dry-run') {
     // Dry run, so just print out the suggested comment.
     $output = array(
-      'issue' => $comment_form->getUri(),
+      'issue' => $issue_uri,
       'comment' => $post,
       'status' => $status,
     );
@@ -229,8 +206,28 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
   }
   else {
     // Production run: post the comment to the drupal.org issue.
+    static $client;
+    if (!$client) {
+      // Perform a user login.
+      global $user, $password;
+      $client = new Client();
+      $crawler = $client->request('GET', 'https://drupal.org/user');
+      $form = $crawler->selectButton('Log in')->form();
+      // $user and $password must be set in user_password.php.
+      $crawler = $client->submit($form, array('name' => $user, 'pass' => $password));
+
+      $login_errors = $crawler->filter('.messages-error');
+      if ($login_errors->count() > 0) {
+        print "Login failed.\n";
+        exit(1);
+      }
+    }
+
     $comment = implode("\n\n", $post);
     if ($status) {
+      // If we need to set the status we edit the issue page itself.
+      $edit_page = $client->request('GET', $issue_uri . '/edit');
+
       $form_values['nodechanges_comment_body[value]'] = $comment;
       // We need to HTML entity decode the issue summary here, otherwise we
       // would post back a double-encoded version, which would result in issue
@@ -239,8 +236,12 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
       $form_values['field_issue_status[und]'] = $status;
     }
     else {
+      // Otherwise we just add a comment with the usual comment form.
+      $edit_page = $client->request('GET', $issue_uri);
+
       $form_values['comment_body[und][0][value]'] = $comment;
     }
+    $comment_form = $edit_page->selectButton('Save')->form();
     $client->submit($comment_form, $form_values);
   }
 }
