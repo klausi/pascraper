@@ -50,7 +50,7 @@ foreach ($links as $link) {
   $issue_summary = $issue_page->filter('.field-name-body');
   // Get the issue summary + all commments.
   $issue_thread = $issue_page->filter('#block-system-main');
-  // Initialize empty comment list that shoudl be posted.
+  // Initialize empty comment list that should be posted.
   $post = array();
   // Do not touch the issue's status per default.
   $status = NULL;
@@ -65,13 +65,16 @@ foreach ($links as $link) {
   // git.drupal.org:sandbox/<user>/<nid>.git
   preg_match('/http:\/\/git\.drupal\.org\/sandbox\/[^\s]+\.git|[^\s]+@git\.drupal\.org:sandbox\/[^\s]+\.git|http:\/\/drupalcode\.org\/sandbox\/[^\s]+\.git|git\.drupal\.org:sandbox\/[^\s]+\.git/', $text, $matches);
   if (empty($matches)) {
-    // Set the issue to "needs work" as the link to the project page is missing.
-    $comment = 'Link to the project page and git clone command are missing in the issue summary, please add them.';
-    // Only set the issue to "needs work" once, to avoid changing the status
-    // over and over again.
-    if (strpos($issue_thread->text(), $comment) === FALSE) {
-      $post[] = $comment;
-      $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
+    // Extract all links out of the issue summary to determine the Git clone URL
+    // from the project page link.
+    $summary_links = $issue_summary->filterXPath('//@href');
+    foreach ($summary_links as $reference) {
+      if (preg_match('/http(s)?:\/\/drupal\.org\/sandbox\//', $reference->value)) {
+        $git_url = str_replace('https://', 'http://', $reference->value);
+        $git_url = trim($git_url);
+        $git_url = str_replace('http://', 'http://git.', $git_url) . '.git';
+        break;
+      }
     }
   }
   else {
@@ -98,6 +101,16 @@ foreach ($links as $link) {
         $post[] = 'There are some errors reported by automated review tools, did you already check them? See http://pareview.sh/pareview/' . str_replace(array('/', '.', ':'), '', $git_url);
         $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
       }
+    }
+  }
+  else {
+    // Set the issue to "needs work" as the Git link could not be extracted.
+    $comment = 'Git clone command for the sandbox is missing in the issue summary, please add it.';
+    // Only set the issue to "needs work" once, to avoid changing the status
+    // over and over again.
+    if (strpos($issue_thread->text(), $comment) === FALSE) {
+      $post[] = $comment;
+      $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
     }
   }
 
