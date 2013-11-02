@@ -226,6 +226,7 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
     if ($status) {
       // If we need to set the status we edit the issue page itself.
       $edit_page = $client->request('GET', $issue_uri . '/edit');
+      $comment_form = $edit_page->selectButton('Save')->form();
 
       $form_values['nodechanges_comment_body[value]'] = $comment;
       // We need to HTML entity decode the issue summary here, otherwise we
@@ -237,10 +238,10 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
     else {
       // Otherwise we just add a comment with the usual comment form.
       $edit_page = $client->request('GET', $issue_uri);
+      $comment_form = $edit_page->selectButton('Save')->form();
 
       $form_values['comment_body[und][0][value]'] = $comment;
     }
-    $comment_form = $edit_page->selectButton('Save')->form();
     $client->submit($comment_form, $form_values);
   }
 }
