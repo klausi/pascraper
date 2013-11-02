@@ -16,7 +16,7 @@ const PROJECTAPP_SCRAPER_WONTFIX = 5;
 $client = new Client();
 
 // Get all "needs review" issues.
-$crawler = $client->request('GET', 'https://drupal.org/project/issues/projectapplications?status=8');
+$crawler = get_request('https://drupal.org/project/issues/projectapplications?status=8');
 $issues = $crawler->filterXPath('//tbody/tr/td[1]/a');
 
 if ($issues->count() == 0) {
@@ -34,7 +34,7 @@ foreach ($links as $link) {
     continue;
   }
 
-  $issue_page = $client->click($link);
+  $issue_page = click_link($link);
   $issue_summary = $issue_page->filter('.field-name-body');
   // Get the issue summary + all commments.
   $issue_thread = $issue_page->filter('#block-system-main');
@@ -110,10 +110,10 @@ foreach ($links as $link) {
   // and get it from there.
   if (mb_substr($user_name, -3) == '...') {
     $user_page_link = $node_author->link();
-    $user_page = $client->click($user_page_link);
+    $user_page = click_link($user_page_link);
     $user_name = $user_page->filter('#page-title')->text();
   }
-  $search_results = $client->request('GET', 'https://drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&sid[0]=Open');
+  $search_results = get_request('https://drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&sid[0]=Open');
   $application_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
   if (count($application_issues) > 1) {
     $comment = array();
@@ -141,7 +141,7 @@ COMMENT;
         // Skip the current application.
         continue;
       }
-      $duplicate_page = $client->click($application_issue);
+      $duplicate_page = click_link($application_issue);
       projectapp_scraper_post_comment($client->getRequest()->getUri(), $comment, PROJECTAPP_SCRAPER_DUPLICATE);
       // Rember that we closed this issue to not post to it in this run again.
       $closed_issues[] = $application_issue->getUri();
@@ -161,7 +161,7 @@ COMMENT;
 }
 
 // Close "needs work" applications that got no update in more than 10 weeks.
-$search_results = $client->request('GET', 'https://drupal.org/project/issues/search/projectapplications?sid[0]=13&sid[1]=4&sid[2]=16&order=changed&sort=asc');
+$search_results = get_request('https://drupal.org/project/issues/search/projectapplications?sid[0]=13&sid[1]=4&sid[2]=16&order=changed&sort=asc');
 $old_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
 // Extract the updated intervals from the issue table.
 $intervals = $search_results->filterXPath('//tbody/tr/td[8]');
@@ -173,8 +173,7 @@ foreach ($intervals as $count => $interval) {
   $diff = $updated - time();
   // 10 weeks == 6048000 seconds.
   if ($diff > 6048000) {
-    $issue_page = $client->click($old_issues[$count]);
-    projectapp_scraper_post_comment($client->getRequest()->getUri(), $comment, PROJECTAPP_SCRAPER_WONTFIX);
+    projectapp_scraper_post_comment($old_issues[$count]->getUri(), $comment, PROJECTAPP_SCRAPER_WONTFIX);
   }
   else {
     // We reached the threshold of 10 weeks, all further issues are younger. So
@@ -244,4 +243,45 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
     $comment_form = $edit_page->selectButton('Save')->form();
     $client->submit($comment_form, $form_values);
   }
+}
+
+/**
+ * Performs a reliable GET request and re-tries drupal.org when it fails with
+ * non 200 OK responses.
+ */
+function get_request($url) {
+  static $client;
+  if (!$client) {
+    $client = new Client();
+  }
+  $status = FALSE;
+  while ($status != 200) {
+    $crawler = $client->request('GET', $url);
+    $status = $client->getResponse()->getStatus();
+    if ($status != 200) {
+      print "$url $status\n";
+    }
+  }
+  return $crawler;
+}
+
+/**
+ * Performs a reliable click on drupal.org and re-tries when it fails with non
+ * 200 OK responses.
+ */
+function click_link($link) {
+  static $client;
+  if (!$client) {
+    $client = new Client();
+  }
+  $url = $link->getUri();
+  $status = FALSE;
+  while ($status != 200) {
+    $crawler = $client->click($link);
+    $status = $client->getResponse()->getStatus();
+    if ($status != 200) {
+      print "$url $status\n";
+    }
+  }
+  return $crawler;
 }
