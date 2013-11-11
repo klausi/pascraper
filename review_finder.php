@@ -13,9 +13,7 @@ use Goutte\Client;
 
 $client = new Client();
 // Get all "needs review" and RTBC issues.
-$crawler = $client->request('GET', 'http://drupal.org/project/issues/search/projectapplications');
-$search_form = $crawler->filter('#edit-submit-project-issue-search-project')->form();
-$search_results = $client->submit($search_form, array('status' => array(8, 14)));
+$search_results = $client->request('GET', 'https://drupal.org/project/issues/search/projectapplications?status[0]=8&status[1]=14');
 
 // Oldest first.
 $link = $search_results->selectLink('Last updated')->link();
@@ -35,7 +33,7 @@ while ($link) {
   // Go to each issue.
   foreach ($links as $link) {
     $issue_page = $client->click($link);
-    $issue_summary = $issue_page->filter('.node-content');
+    $issue_summary = $issue_page->filter('.field-name-body');
     $review_links = $issue_summary->filterXPath("//@href[contains(., 'drupal.org/node/')]");
     if ($review_links->count() > 2) {
       print $link->getNode()->nodeValue . ' ' . $link->getUri() . "\n";

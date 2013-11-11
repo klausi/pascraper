@@ -113,7 +113,7 @@ foreach ($links as $link) {
     $user_page = click_link($user_page_link);
     $user_name = $user_page->filter('#page-title')->text();
   }
-  $search_results = get_request('https://drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&sid[0]=Open');
+  $search_results = get_request('https://drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&status[0]=Open');
   $application_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
   if (count($application_issues) > 1) {
     $comment = array();
@@ -151,7 +151,7 @@ COMMENT;
   // Post a hint to the review bonus program.
   $issue_text = $issue_thread->text();
   if (stripos($issue_text, 'review bonus') === FALSE) {
-    $post[] = 'We are currently quite busy with all the project applications and we prefer projects with a <a href="http://drupal.org/node/1975228">review bonus</a>. Please help reviewing and put yourself on the <a href="https://drupal.org/project/issues/search/projectapplications?sid[]=8&sid[]=14&issue_tags=PAReview%3A+review+bonus">high priority list</a>, then we will take a look at your project right away :-)';
+    $post[] = 'We are currently quite busy with all the project applications and we prefer projects with a <a href="http://drupal.org/node/1975228">review bonus</a>. Please help reviewing and put yourself on the <a href="https://drupal.org/project/issues/search/projectapplications?status[]=8&status[]=14&issue_tags=PAReview%3A+review+bonus">high priority list</a>, then we will take a look at your project right away :-)';
     $post[] = 'Also, you should get your friends, colleagues or other community members involved to review this application. Let them go through the <a href="http://drupal.org/node/1587704">review checklist</a> and post a comment that sets this issue to "needs work" (they found some problems with the project) or "reviewed & tested by the community" (they found no major flaws).';
   }
 
@@ -161,7 +161,7 @@ COMMENT;
 }
 
 // Close "needs work" applications that got no update in more than 10 weeks.
-$search_results = get_request('https://drupal.org/project/issues/search/projectapplications?sid[0]=13&sid[1]=4&sid[2]=16&order=changed&sort=asc');
+$search_results = get_request('https://drupal.org/project/issues/search/projectapplications?status[0]=13&status[1]=4&status[2]=16&order=changed&sort=asc');
 $old_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
 // Extract the updated intervals from the issue table.
 $intervals = $search_results->filterXPath('//tbody/tr/td[8]');
