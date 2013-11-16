@@ -35,7 +35,7 @@ while ($link) {
     $issue_page = $client->click($link);
     $issue_summary = $issue_page->filter('.field-name-body');
     $review_links = $issue_summary->filterXPath("//@href[contains(., 'drupal.org/node/')]");
-    if ($review_links->count() > 2) {
+    if ($review_links->count() > 1) {
       print $link->getNode()->nodeValue . ' ' . $link->getUri() . "\n";
     }
   }
