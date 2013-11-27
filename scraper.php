@@ -13,7 +13,6 @@ const PROJECTAPP_SCRAPER_POSTPONED = 4;
 const PROJECTAPP_SCRAPER_POSTPONED_INFO = 16;
 const PROJECTAPP_SCRAPER_WONTFIX = 5;
 
-$client = new Client();
 
 // Get all "needs review" issues.
 $crawler = get_request('https://drupal.org/project/issues/projectapplications?status=8');
@@ -81,7 +80,7 @@ foreach ($links as $link) {
       $return_var = 0;
       exec('pareview.sh ' . escapeshellarg($git_url), $pareview_output, $return_var);
       if ($return_var == 1) {
-        print 'Git clone failed for ' . $git_url . ', issue: ' . $client->getRequest()->getUri();
+        print 'Git clone failed for ' . $git_url . ', issue: ' . $link->getUri();
       }
       // If there are more than 30 lines output then we assume that some errors
       // should be fixed.
@@ -142,7 +141,7 @@ COMMENT;
         continue;
       }
       $duplicate_page = click_link($application_issue);
-      projectapp_scraper_post_comment($client->getRequest()->getUri(), $comment, PROJECTAPP_SCRAPER_DUPLICATE);
+      projectapp_scraper_post_comment($application_issue->getUri(), $comment, PROJECTAPP_SCRAPER_DUPLICATE);
       // Rember that we closed this issue to not post to it in this run again.
       $closed_issues[] = $application_issue->getUri();
     }
@@ -161,7 +160,7 @@ COMMENT;
 }
 
 // Close "needs work" applications that got no update in more than 10 weeks.
-$search_results = get_request('https://drupal.org/project/issues/search/projectapplications?status[0]=13&status[1]=4&status[2]=16&order=changed&sort=asc');
+$search_results = get_request('https://drupal.org/project/issues/search/projectapplications?status[0]=13&status[1]=4&status[2]=16&order=last_comment_timestamp&sort=asc');
 $old_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
 // Extract the updated intervals from the issue table.
 $intervals = $search_results->filterXPath('//tbody/tr/td[8]');
