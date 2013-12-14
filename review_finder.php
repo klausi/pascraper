@@ -34,12 +34,12 @@ while ($link) {
   foreach ($links as $link) {
     $issue_page = $client->click($link);
     $issue_summary = $issue_page->filter('.field-name-body');
-    $review_links = $issue_summary->filterXPath("//@href[contains(., 'drupal.org/node/')]");
+    $review_links = $issue_summary->filterXPath("//@href[contains(., 'drupal.org/node/') or contains(., 'drupal.org/comment/')]");
     if ($review_links->count() > 1) {
       print $link->getNode()->nodeValue . ' ' . $link->getUri() . "\n";
     }
   }
 
   // Go to the next page.
-  $link = $search_page->selectLink('next ›')->link();
+  $link = $search_page->selectLink('››')->link();
 }
