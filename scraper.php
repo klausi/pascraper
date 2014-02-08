@@ -239,7 +239,7 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
       $edit_page = $client->request('GET', $issue_uri);
       $comment_form = $edit_page->selectButton('Save')->form();
 
-      $form_values['comment_body[und][0][value]'] = $comment;
+      $form_values['nodechanges_comment_body[value]'] = $comment;
     }
     $client->submit($comment_form, $form_values);
   }
