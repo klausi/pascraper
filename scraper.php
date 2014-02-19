@@ -222,25 +222,18 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
     }
 
     $comment = implode("\n\n", $post);
-    if ($status) {
-      // If we need to set the status we edit the issue page itself.
-      $edit_page = $client->request('GET', $issue_uri . '/edit');
-      $comment_form = $edit_page->selectButton('Save')->form();
+    $issue_page = $client->request('GET', $issue_uri);
+    $comment_form = $issue_page->selectButton('Save')->form();
 
-      $form_values['nodechanges_comment_body[value]'] = $comment;
-      // We need to HTML entity decode the issue summary here, otherwise we
-      // would post back a double-encoded version, which would result in issue
-      // summary changes that we don't want to touch.
-      $form_values['body[und][0][value]'] = html_entity_decode($comment_form->get('body[und][0][value]')->getValue(), ENT_QUOTES, 'UTF-8');
+    $form_values['nodechanges_comment_body[value]'] = $comment;
+    if ($status) {
       $form_values['field_issue_status[und]'] = $status;
     }
-    else {
-      // Otherwise we just add a comment with the usual comment form.
-      $edit_page = $client->request('GET', $issue_uri);
-      $comment_form = $edit_page->selectButton('Save')->form();
+    // We need to HTML entity decode the issue summary here, otherwise we
+    // would post back a double-encoded version, which would result in issue
+    // summary changes that we don't want to touch.
+    $form_values['body[und][0][value]'] = html_entity_decode($comment_form->get('body[und][0][value]')->getValue(), ENT_QUOTES, 'UTF-8');
 
-      $form_values['nodechanges_comment_body[value]'] = $comment;
-    }
     $client->submit($comment_form, $form_values);
   }
 }
