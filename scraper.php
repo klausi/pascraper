@@ -78,9 +78,12 @@ foreach ($links as $link) {
       // Invoke pareview.sh now to check automated review errors.
       $pareview_output = array();
       $return_var = 0;
-      exec('pareview.sh ' . escapeshellarg($git_url), $pareview_output, $return_var);
+      exec('timeout 120 pareview.sh ' . escapeshellarg($git_url), $pareview_output, $return_var);
       if ($return_var == 1) {
-        print 'Git clone failed for ' . $git_url . ', issue: ' . $link->getUri();
+        print 'Git clone failed for ' . $git_url . ', issue: ' . $link->getUri() . "\n";
+      }
+      elseif ($return_var == 124) {
+        print 'Timeout when invoking pareview.sh for ' . $git_url . ', issue: ' . $link->getUri() . "\n";
       }
       // If there are more than 30 lines output then we assume that some errors
       // should be fixed.
