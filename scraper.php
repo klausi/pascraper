@@ -42,6 +42,7 @@ foreach ($links as $link) {
   // Do not touch the issue's status per default.
   $status = NULL;
 
+  $git_url = NULL;
   // Search for git repository links.
   $text = $issue_summary->text();
   $matches = array();
