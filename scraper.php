@@ -79,17 +79,22 @@ foreach ($links as $link) {
       // Invoke pareview.sh now to check automated review errors.
       $pareview_output = array();
       $return_var = 0;
+      $pareview_url = 'http://pareview.sh/pareview/' . str_replace(array('/', '.', ':'), '', $git_url);
       exec('timeout 120 pareview.sh ' . escapeshellarg($git_url), $pareview_output, $return_var);
       if ($return_var == 1) {
-        print 'Git clone failed for ' . $git_url . ', issue: ' . $link->getUri() . "\n";
+        $post[] = 'Git clone failed for ' . $git_url . ' while invoking ' . $pareview_url;
+        $post[] = "<code>\n" . implode("\n", $pareview_output) . "\n</code>";
+        $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
       }
       elseif ($return_var == 124) {
-        print 'Timeout when invoking pareview.sh for ' . $git_url . ', issue: ' . $link->getUri() . "\n";
+        $post[] = 'Timeout when invoking pareview.sh for ' . $git_url . ' at ' . $pareview_url;
+        $post[] = 'Do you have any third-party files committed? 3rd party code is not generally allowed on Drupal.org and should be deleted. This policy is described in the <a href="http://drupal.org/node/422996">getting involved handbook</a>. It also appears in the <a href="http://drupal.org/node/1001544">terms and conditions</a> you agreed to when you signed up for Git access.';
+        $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
       }
       // If there are more than 30 lines output then we assume that some errors
       // should be fixed.
       elseif (count($pareview_output) > 30) {
-        $post[] = 'There are some errors reported by automated review tools, did you already check them? See http://pareview.sh/pareview/' . str_replace(array('/', '.', ':'), '', $git_url);
+        $post[] = 'There are some errors reported by automated review tools, did you already check them? See ' . $pareview_url;
         $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
       }
     }
