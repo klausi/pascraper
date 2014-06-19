@@ -15,7 +15,7 @@ const PROJECTAPP_SCRAPER_WONTFIX = 5;
 
 
 // Get all "needs review" issues.
-$crawler = get_request('https://drupal.org/project/issues/search/projectapplications?status[0]=1&status[1]=8');
+$crawler = get_request('https://www.drupal.org/project/issues/search/projectapplications?status[0]=1&status[1]=8');
 $issues = $crawler->filterXPath('//tbody/tr/td[1]/a');
 
 if ($issues->count() == 0) {
@@ -88,7 +88,7 @@ foreach ($links as $link) {
       }
       elseif ($return_var == 124) {
         $post[] = 'Timeout when invoking pareview.sh for ' . $git_url . ' at ' . $pareview_url;
-        $post[] = 'Do you have any third-party files committed? 3rd party code is not generally allowed on Drupal.org and should be deleted. This policy is described in the <a href="http://drupal.org/node/422996">getting involved handbook</a>. It also appears in the <a href="http://drupal.org/node/1001544">terms and conditions</a> you agreed to when you signed up for Git access.';
+        $post[] = 'Do you have any third-party files committed? 3rd party code is not generally allowed on Drupal.org and should be deleted. This policy is described in the <a href="https://www.drupal.org/node/422996">getting involved handbook</a>. It also appears in the <a href="https://www.drupal.org/node/1001544">terms and conditions</a> you agreed to when you signed up for Git access.';
         $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
       }
       // If there are more than 30 lines output then we assume that some errors
@@ -121,7 +121,7 @@ foreach ($links as $link) {
     $user_page = click_link($user_page_link);
     $user_name = $user_page->filter('#page-title')->text();
   }
-  $search_results = get_request('https://drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&status[0]=Open');
+  $search_results = get_request('https://www.drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&status[0]=Open');
   $application_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
   if (count($application_issues) > 1) {
     $comment = array();
@@ -159,8 +159,8 @@ COMMENT;
   // Post a hint to the review bonus program.
   $issue_text = $issue_thread->text();
   if (stripos($issue_text, 'review bonus') === FALSE) {
-    $post[] = 'We are currently quite busy with all the project applications and we prefer projects with a <a href="http://drupal.org/node/1975228">review bonus</a>. Please help reviewing and put yourself on the <a href="https://drupal.org/project/issues/search/projectapplications?status[]=8&status[]=14&issue_tags=PAReview%3A+review+bonus">high priority list</a>, then we will take a look at your project right away :-)';
-    $post[] = 'Also, you should get your friends, colleagues or other community members involved to review this application. Let them go through the <a href="http://drupal.org/node/1587704">review checklist</a> and post a comment that sets this issue to "needs work" (they found some problems with the project) or "reviewed & tested by the community" (they found no major flaws).';
+    $post[] = 'We are currently quite busy with all the project applications and we prefer projects with a <a href="https://www.drupal.org/node/1975228">review bonus</a>. Please help reviewing and put yourself on the <a href="https://www.drupal.org/project/issues/search/projectapplications?status[]=8&status[]=14&issue_tags=PAReview%3A+review+bonus">high priority list</a>, then we will take a look at your project right away :-)';
+    $post[] = 'Also, you should get your friends, colleagues or other community members involved to review this application. Let them go through the <a href="https://www.drupal.org/node/1587704">review checklist</a> and post a comment that sets this issue to "needs work" (they found some problems with the project) or "reviewed & tested by the community" (they found no major flaws).';
   }
 
   if (!empty($post)) {
@@ -169,12 +169,12 @@ COMMENT;
 }
 
 // Close "needs work" applications that got no update in more than 10 weeks.
-$search_results = get_request('https://drupal.org/project/issues/search/projectapplications?status[0]=13&status[1]=4&status[2]=16&order=last_comment_timestamp&sort=asc');
+$search_results = get_request('https://www.drupal.org/project/issues/search/projectapplications?status[0]=13&status[1]=4&status[2]=16&order=last_comment_timestamp&sort=asc');
 $old_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
 // Extract the updated intervals from the issue table.
 $intervals = $search_results->filterXPath('//tbody/tr/td[8]');
 
-$comment = 'Closing due to lack of activity. Feel free to reopen if you are still working on this application (see also the <a href="https://drupal.org/node/532400">project application workflow</a>).';
+$comment = 'Closing due to lack of activity. Feel free to reopen if you are still working on this application (see also the <a href="https://www.drupal.org/node/532400">project application workflow</a>).';
 
 foreach ($intervals as $count => $interval) {
   $updated = strtotime(trim($interval->nodeValue));
@@ -200,7 +200,7 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
     $post = array($post);
   }
 
-  $post[] = "<i>I'm a robot and this is an automated message from <a href=\"http://drupal.org/sandbox/klausi/1938730\">Project Applications Scraper</a>.</i>";
+  $post[] = "<i>I'm a robot and this is an automated message from <a href=\"https://www.drupal.org/sandbox/klausi/1938730\">Project Applications Scraper</a>.</i>";
 
   if (isset($argv[1]) && $argv[1] == 'dry-run') {
     // Dry run, so just print out the suggested comment.
@@ -218,7 +218,7 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
       // Perform a user login.
       global $user, $password;
       $client = new Client();
-      $crawler = $client->request('GET', 'https://drupal.org/user');
+      $crawler = $client->request('GET', 'https://www.drupal.org/user');
       $form = $crawler->selectButton('Log in')->form();
       // $user and $password must be set in user_password.php.
       $crawler = $client->submit($form, array('name' => $user, 'pass' => $password));
