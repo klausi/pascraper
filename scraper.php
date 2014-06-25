@@ -174,7 +174,7 @@ $old_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
 // Extract the updated intervals from the issue table.
 $intervals = $search_results->filterXPath('//tbody/tr/td[8]');
 
-$comment = 'Closing due to lack of activity. Feel free to reopen if you are still working on this application (see also the <a href="https://www.drupal.org/node/532400">project application workflow</a>).';
+$comment = 'Closing due to lack of activity. If you are still working on this application, you should fix all known problems and then set the status to "Needs review". (See also the <a href="https://www.drupal.org/node/532400">project application workflow</a>).';
 
 foreach ($intervals as $count => $interval) {
   $updated = strtotime(trim($interval->nodeValue));
