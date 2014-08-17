@@ -243,7 +243,11 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
     // summary changes that we don't want to touch.
     $form_values['body[und][0][value]'] = html_entity_decode($comment_form->get('body[und][0][value]')->getValue(), ENT_QUOTES, 'UTF-8');
 
-    $client->submit($comment_form, $form_values);
+    do {
+      // Repeat the form submission if there is a 502 gateway error.
+      $client->submit($comment_form, $form_values);
+      $response = $client->getResponse();
+    } while ($response->getStatus() != 200);
   }
 }
 
