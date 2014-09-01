@@ -44,14 +44,22 @@ foreach ($links as $link) {
 
   $git_url = NULL;
   // Search for git repository links.
+  // First we look for a git clone command in the text.
   $text = $issue_summary->text();
+  $matches = array();
+  if (preg_match('/git clone .+\.git/', $text, $matches)) {
+    // Found a git clone command, so use that fragment for extracting the git
+    // URL.
+    $text = $matches[0];
+  }
   $matches = array();
   // There are a couple of possible patterns:
   // http://git.drupal.org/sandbox/<user>/<nid>.git
   // <user>@git.drupal.org:sandbox/<user>/<nid>.git
   // http://drupalcode.org/sandbox/<user>/<nid>.git
   // git.drupal.org:sandbox/<user>/<nid>.git
-  preg_match('/http:\/\/git\.drupal\.org\/sandbox\/[^\s]+\.git|[^\s]+@git\.drupal\.org:sandbox\/[^\s]+\.git|http:\/\/drupalcode\.org\/sandbox\/[^\s]+\.git|git\.drupal\.org:sandbox\/[^\s]+\.git/', $text, $matches);
+  // git://git.drupal.org/sandbox/<user>/<nid>.git
+  $return = preg_match('/((git|http):\/\/|[^\s]+@)?(git\.drupal|drupalcode)\.org(\/|:)sandbox\/[^\s]+\.git/', $text, $matches);
   if (empty($matches)) {
     // Extract all links out of the issue summary to determine the Git clone URL
     // from the project page link.
