@@ -59,7 +59,7 @@ foreach ($links as $link) {
   // http://drupalcode.org/sandbox/<user>/<nid>.git
   // git.drupal.org:sandbox/<user>/<nid>.git
   // git://git.drupal.org/sandbox/<user>/<nid>.git
-  $return = preg_match('/((git|http):\/\/|[^\s]+@)?(git\.drupal|drupalcode)\.org(\/|:)sandbox\/[^\s]+\.git/', $text, $matches);
+  preg_match('/((git|http):\/\/|[^\s]+@)?(git\.drupal|drupalcode)\.org(\/|:)([^\s]+\.git)/', $text, $matches);
   if (empty($matches)) {
     // Extract all links out of the issue summary to determine the Git clone URL
     // from the project page link.
@@ -74,9 +74,7 @@ foreach ($links as $link) {
     }
   }
   else {
-    $url = $matches[0];
-    preg_match('/sandbox\/.*\.git/', $url, $matches);
-    $git_url = 'http://git.drupal.org/' . $matches[0];
+    $git_url = 'http://git.drupal.org/' . $matches[5];
   }
 
   if ($git_url) {
