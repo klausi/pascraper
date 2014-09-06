@@ -65,8 +65,9 @@ foreach ($links as $link) {
     // from the project page link.
     $summary_links = $issue_summary->filterXPath('//@href');
     foreach ($summary_links as $reference) {
-      if (preg_match('/http(s)?:\/\/drupal\.org\/sandbox\//', $reference->value)) {
-        $git_url = str_replace('https://', 'http://', $reference->value);
+      if (preg_match('/http(s)?:\/\/(www\.)?drupal\.org\/sandbox\//', $reference->value)) {
+        $git_url = str_replace('https://www.', 'http://', $reference->value);
+        $git_url = str_replace('https://', 'http://', $git_url);
         $git_url = trim($git_url);
         $git_url = str_replace('http://', 'http://git.', $git_url) . '.git';
         break;
