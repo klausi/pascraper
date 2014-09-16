@@ -45,7 +45,12 @@ foreach ($links as $link) {
   $git_url = NULL;
   // Search for git repository links.
   // First we look for a git clone command in the text.
-  $text = $issue_summary->text();
+  if (count($issue_summary)) {
+    $text = $issue_summary->text();
+  }
+  else {
+    $text = '';
+  }
   $matches = array();
   if (preg_match('/git clone .+\.git/', $text, $matches)) {
     // Found a git clone command, so use that fragment for extracting the git
