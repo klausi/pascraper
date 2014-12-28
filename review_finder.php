@@ -7,13 +7,12 @@
  */
 
 require 'vendor/autoload.php';
-require 'user_password.php';
 
 use Goutte\Client;
 
 $client = new Client();
 // Get all "needs review" and RTBC issues.
-$search_results = $client->request('GET', 'https://drupal.org/project/issues/search/projectapplications?status[0]=8&status[1]=14');
+$search_results = $client->request('GET', 'https://www.drupal.org/project/issues/search/projectapplications?status[0]=8&status[1]=14');
 
 // Oldest first.
 $link = $search_results->selectLink('Last updated')->link();
