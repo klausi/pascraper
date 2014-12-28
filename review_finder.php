@@ -11,15 +11,10 @@ require 'vendor/autoload.php';
 use Goutte\Client;
 
 $client = new Client();
-// Get all "needs review" and RTBC issues.
-$search_results = $client->request('GET', 'https://www.drupal.org/project/issues/search/projectapplications?status[0]=8&status[1]=14');
+// Get all "needs review" and RTBC issues, oldest first.
+$search_page = $client->request('GET', 'https://www.drupal.org/project/issues/search/projectapplications?status[0]=8&status[1]=14&order=created&sort=asc');
 
-// Oldest first.
-$link = $search_results->selectLink('Last updated')->link();
-
-while ($link) {
-  $search_page = $client->click($link);
-
+while ($search_page) {
   $issues = $search_page->filterXPath('//tbody/tr/td[1]/a');
 
   if ($issues->count() == 0) {
@@ -40,5 +35,6 @@ while ($link) {
   }
 
   // Go to the next page.
-  $link = $search_page->selectLink('››')->link();
+  $link = $search_page->selectLink('next ›')->link();
+  $search_page = $client->click($link);
 }
