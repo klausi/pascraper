@@ -246,7 +246,7 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
     $issue_page = $client->request('GET', $issue_uri);
     $comment_form = $issue_page->selectButton('Save')->form();
 
-    $form_values['nodechanges_comment_body[value]'] = $comment;
+    $form_values['nodechanges_comment[comment_body][und][0][value]'] = $comment;
     if ($status) {
       $form_values['field_issue_status[und]'] = $status;
     }
