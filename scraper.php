@@ -14,7 +14,7 @@ const PROJECTAPP_SCRAPER_POSTPONED_INFO = 16;
 const PROJECTAPP_SCRAPER_WONTFIX = 5;
 
 
-// Get all "needs review" issues.
+// Get all "active" and "needs review" issues.
 $crawler = get_request('https://www.drupal.org/project/issues/search/projectapplications?status[0]=1&status[1]=8');
 $issues = $crawler->filterXPath('//tbody/tr/td[1]/a');
 
@@ -133,7 +133,8 @@ foreach ($links as $link) {
     $user_page = click_link($user_page_link);
     $user_name = $user_page->filter('#page-title')->text();
   }
-  $search_results = get_request('https://www.drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&status[0]=Open');
+  // Get all open issues of the user except "Fixed" issues.
+  $search_results = get_request('https://www.drupal.org/project/issues/search/projectapplications?submitted=' . urlencode($user_name) . '&status[0]=1&status[1]=13&status[2]=8&status[3]=14&status[4]=15&status[5]=4&status[6]=16');
   $application_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
   if (count($application_issues) > 1) {
     $comment = array();
