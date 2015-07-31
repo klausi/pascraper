@@ -41,6 +41,8 @@ foreach ($links as $link) {
   $post = array();
   // Do not touch the issue's status per default.
   $status = NULL;
+  // Do not touch the issue summary per default.
+  $new_issue_summary = NULL;
 
   $git_url = NULL;
   // Search for git repository links.
@@ -110,6 +112,16 @@ foreach ($links as $link) {
         $status = PROJECTAPP_SCRAPER_NEEDS_WORK;
       }
     }
+
+    // Replace a user specific git URL with that for anonymous users.
+    if (preg_match('/ [^\s]+@git\.drupal\.org:/', $text)) {
+      $client = get_logged_in_client();
+      $issue_page_logged_in = $client->request('GET', $link->getUri());
+      $comment_form = $issue_page_logged_in->selectButton('Save')->form();
+      $new_issue_summary = html_entity_decode($comment_form->get('body[und][0][value]')->getValue(), ENT_QUOTES, 'UTF-8');
+      $new_issue_summary = preg_replace('/ [^\s]+@git\.drupal\.org:/', ' http://git.drupal.org/', $new_issue_summary);
+      $post[] = 'Fixed the git clone URL in the issue summary for non-maintainer users.';
+    }
   }
   else {
     // Set the issue to "needs work" as the Git link could not be extracted.
@@ -177,7 +189,7 @@ COMMENT;
   }
 
   if (!empty($post)) {
-    projectapp_scraper_post_comment($link->getUri(), $post, $status);
+    projectapp_scraper_post_comment($link->getUri(), $post, $status, $new_issue_summary);
   }
 }
 
@@ -207,7 +219,7 @@ foreach ($intervals as $count => $interval) {
  * Helper function to either output the issue comment on a dry-run or post a new
  * comment to the issue.
  */
-function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
+function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL, $issue_summary = NULL) {
   global $argv;
   if (!is_array($post)) {
     $post = array($post);
@@ -221,27 +233,13 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
       'issue' => $issue_uri,
       'comment' => $post,
       'status' => $status,
+      'issue_summary' => $issue_summary,
     );
     print_r($output);
   }
   else {
     // Production run: post the comment to the drupal.org issue.
-    static $client;
-    if (!$client) {
-      // Perform a user login.
-      global $user, $password;
-      $client = new Client();
-      $crawler = $client->request('GET', 'https://www.drupal.org/user');
-      $form = $crawler->selectButton('Log in')->form();
-      // $user and $password must be set in user_password.php.
-      $crawler = $client->submit($form, array('name' => $user, 'pass' => $password));
-
-      $login_errors = $crawler->filter('.messages-error');
-      if ($login_errors->count() > 0) {
-        print "Login failed.\n";
-        exit(1);
-      }
-    }
+    $client = get_logged_in_client();
 
     $comment = implode("\n\n", $post);
     $issue_page = $client->request('GET', $issue_uri);
@@ -251,10 +249,15 @@ function projectapp_scraper_post_comment($issue_uri, $post, $status = NULL) {
     if ($status) {
       $form_values['field_issue_status[und]'] = $status;
     }
-    // We need to HTML entity decode the issue summary here, otherwise we
-    // would post back a double-encoded version, which would result in issue
-    // summary changes that we don't want to touch.
-    $form_values['body[und][0][value]'] = html_entity_decode($comment_form->get('body[und][0][value]')->getValue(), ENT_QUOTES, 'UTF-8');
+    if ($issue_summary) {
+      $form_values['body[und][0][value]'] = $issue_summary;
+    }
+    else {
+      // We need to HTML entity decode the issue summary here, otherwise we
+      // would post back a double-encoded version, which would result in issue
+      // summary changes that we don't want to touch.
+      $form_values['body[und][0][value]'] = html_entity_decode($comment_form->get('body[und][0][value]')->getValue(), ENT_QUOTES, 'UTF-8');
+    }
 
     do {
       // Repeat the form submission if there is a 502 gateway error.
@@ -303,4 +306,28 @@ function click_link($link) {
     }
   }
   return $crawler;
+}
+
+/**
+ * Performs a user login and returns the Guzzle client object to perform request
+ * as authenticated user.
+ */
+function get_logged_in_client() {
+  static $client;
+  if (!$client) {
+    // Perform a user login.
+    global $user, $password;
+    $client = new Client();
+    $crawler = $client->request('GET', 'https://www.drupal.org/user');
+    $form = $crawler->selectButton('Log in')->form();
+    // $user and $password must be set in user_password.php.
+    $crawler = $client->submit($form, array('name' => $user, 'pass' => $password));
+
+    $login_errors = $crawler->filter('.messages-error');
+    if ($login_errors->count() > 0) {
+      print "Login failed.\n";
+      exit(1);
+    }
+  }
+  return $client;
 }
