@@ -135,7 +135,7 @@ foreach ($links as $link) {
   }
 
   // Search for multiple applications for this user.
-  $node_author = $issue_page->filterXPath("///div[contains(string(@class), 'node node-project-issue')]/div[@class = 'submitted']/a");
+  $node_author = $issue_page->filterXPath("///div[contains(string(@class), 'comment comment-by-node-author')]//a[@class = 'username']");
   $user_name = $node_author->text();
 
   // The username might have been shortened, so we go to the user account page
