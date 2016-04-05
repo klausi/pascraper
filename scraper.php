@@ -62,11 +62,12 @@ foreach ($links as $link) {
   $matches = array();
   // There are a couple of possible patterns:
   // http://git.drupal.org/sandbox/<user>/<nid>.git
+  // https://git.drupal.org/sandbox/<user>/<nid>.git
   // <user>@git.drupal.org:sandbox/<user>/<nid>.git
   // http://drupalcode.org/sandbox/<user>/<nid>.git
   // git.drupal.org:sandbox/<user>/<nid>.git
   // git://git.drupal.org/sandbox/<user>/<nid>.git
-  preg_match('/((git|http):\/\/|[^\s]+@)?(git\.drupal|drupalcode)\.org(\/|:)([^\s]+\.git)/', $text, $matches);
+  preg_match('/((git|http|https):\/\/|[^\s]+@)?(git\.drupal|drupalcode)\.org(\/|:)([^\s]+\.git)/', $text, $matches);
   if (empty($matches)) {
     // Extract all links out of the issue summary to determine the Git clone URL
     // from the project page link.
@@ -82,7 +83,7 @@ foreach ($links as $link) {
     }
   }
   else {
-    $git_url = 'http://git.drupal.org/' . $matches[5];
+    $git_url = 'https://git.drupal.org/' . $matches[5];
   }
 
   if ($git_url) {
@@ -119,7 +120,7 @@ foreach ($links as $link) {
       $issue_page_logged_in = $client->request('GET', $link->getUri());
       $comment_form = $issue_page_logged_in->selectButton('Save')->form();
       $new_issue_summary = html_entity_decode($comment_form->get('body[und][0][value]')->getValue(), ENT_QUOTES, 'UTF-8');
-      $new_issue_summary = preg_replace('/ [^\s]+@git\.drupal\.org:/', ' http://git.drupal.org/', $new_issue_summary);
+      $new_issue_summary = preg_replace('/ [^\s]+@git\.drupal\.org:/', ' https://git.drupal.org/', $new_issue_summary);
       $post[] = 'Fixed the git clone URL in the issue summary for non-maintainer users.';
     }
   }
