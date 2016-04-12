@@ -95,7 +95,9 @@ foreach ($links as $link) {
       $pareview_output = array();
       $return_var = 0;
       $pareview_url = 'http://pareview.sh/pareview/' . str_replace(array('/', '.', ':'), '', $git_url);
-      exec('timeout 120 pareview.sh ' . escapeshellarg($git_url), $pareview_output, $return_var);
+      // PHPCS does some weird STDIN handling, so we pass null as standard input.
+      exec('timeout 120 pareview.sh < /dev/null ' . escapeshellarg($git_url), $pareview_output, $return_var);
+
       if ($return_var == 1) {
         $post[] = 'Git clone failed for ' . $git_url . ' while invoking ' . $pareview_url;
         $post[] = "<code>\n" . implode("\n", $pareview_output) . "\n</code>";
