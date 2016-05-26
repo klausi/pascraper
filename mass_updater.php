@@ -13,16 +13,20 @@ const PROJECTAPP_SCRAPER_POSTPONED_INFO = 16;
 const PROJECTAPP_SCRAPER_WONTFIX = 5;
 
 // URL to a list of issues that should be updated.
-$url = 'https://www.drupal.org/project/issues/coder?version=7.x-1.x-dev';
+$url = 'https://www.drupal.org/project/issues/coder?version=7.x-1.2';
 // The new status the issue should be set to.
 $status = PROJECTAPP_SCRAPER_WONTFIX;
 $comment = 'Coder 7.x-1.x is frozen now and will not receive any updates. Coder 8.x-2.x can be used to check code for any Drupal version, Coder 8.x-2.x also supports the phpcbf command to automatically fix conding standard errors. Please check if this issue is still relevant and reopen against that version if necessary.';
 
 require 'vendor/autoload.php';
-require 'user_password.php';
+require 'personal_password.php';
 
 use Goutte\Client;
 
+if (empty($argv[1])) {
+  print "TFA token parameter missing.\n";
+  exit(3);
+}
 $tfa_token = $argv[1];
 
 $client = get_logged_in_client();
