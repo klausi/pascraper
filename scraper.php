@@ -196,7 +196,7 @@ COMMENT;
   }
 }
 
-// Close "needs work" applications that got no update in more than 4 weeks.
+// Close "needs work" applications that got no update in more than 3 weeks.
 $search_results = get_request('https://www.drupal.org/project/issues/search/projectapplications?status[0]=13&status[1]=4&status[2]=16&order=last_comment_timestamp&sort=asc');
 $old_issues = $search_results->filterXPath('//tbody/tr/td[1]/a')->links();
 // Extract the updated intervals from the issue table.
@@ -207,8 +207,8 @@ $comment = 'Closing due to lack of activity. If you are still working on this ap
 foreach ($intervals as $count => $interval) {
   $updated = strtotime(trim($interval->nodeValue));
   $diff = $updated - time();
-  // 4 weeks == 2419200 seconds.
-  if ($diff > 2419200) {
+  // 3 weeks == 1814400 seconds.
+  if ($diff > 1814400) {
     projectapp_scraper_post_comment($old_issues[$count]->getUri(), $comment, PROJECTAPP_SCRAPER_WONTFIX);
   }
   else {
