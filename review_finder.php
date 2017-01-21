@@ -28,8 +28,8 @@ while ($search_page) {
   foreach ($links as $link) {
     $issue_page = $client->click($link);
     $issue_summary = $issue_page->filter('.field-name-body');
-    $review_links = $issue_summary->filterXPath("//@href[contains(., 'drupal.org/node/') or contains(., 'drupal.org/comment/')]");
-    if ($review_links->count() > 1) {
+    $review_links = $issue_summary->filterXPath("//a[contains(@href, 'drupal.org/node/') or contains(@href, 'drupal.org/comment/')]");
+    if ($review_links->count() > 0) {
       print $link->getNode()->nodeValue . ' ' . $link->getUri() . "\n";
     }
   }
